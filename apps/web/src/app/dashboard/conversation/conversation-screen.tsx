@@ -401,17 +401,17 @@ function HistoryRail({ threads, activeId, onSelect, onNew, onDelete }: { threads
           threads.map((thread) => {
             const isActive = thread.id === activeId;
             return (
-              <button
+              <div
                 key={thread.id}
-                  className={`group w-full rounded-xl px-3.5 py-3 text-left transition ${
+                className={`group flex w-full items-start gap-2 rounded-xl px-3.5 py-3 text-left transition ${
                   isActive
                     ? "border border-emerald/30 bg-emerald-soft text-text-primary"
                     : "border border-transparent text-text-secondary hover:border-white/[0.06] hover:bg-surface-hover hover:text-text-primary"
                 }`}
-                onClick={() => onSelect(thread.id)}
               >
-                  <div className="flex items-start gap-2"><div className="min-w-0 flex-1"><p className="truncate text-[13px] font-medium leading-snug">{thread.title}</p><p className="mt-1 text-[11px] text-text-tertiary">{formatRelative(thread.updatedAt)}</p></div><button className="grid size-7 shrink-0 place-items-center rounded-lg text-text-tertiary opacity-0 transition hover:bg-red-400/10 hover:text-red-300 group-hover:opacity-100 focus-visible:opacity-100" aria-label={`Delete ${thread.title}`} onClick={(event) => { event.stopPropagation(); onDelete(thread); }}><Icon name="trash" size={14} /></button></div>
-              </button>
+                <button className="min-w-0 flex-1 text-left" onClick={() => onSelect(thread.id)} aria-current={isActive ? "page" : undefined}><p className="truncate text-[13px] font-medium leading-snug">{thread.title}</p><p className="mt-1 text-[11px] text-text-tertiary">{formatRelative(thread.updatedAt)}</p></button>
+                <button className="grid size-7 shrink-0 place-items-center rounded-lg text-text-tertiary opacity-0 transition hover:bg-red-400/10 hover:text-red-300 group-hover:opacity-100 focus-visible:opacity-100" aria-label={`Delete ${thread.title}`} onClick={() => onDelete(thread)}><Icon name="trash" size={14} /></button>
+              </div>
             );
           })
         ) : (
