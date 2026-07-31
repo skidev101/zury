@@ -1,0 +1,19 @@
+{
+  "name": "zury",
+  "version": "0.0.1",
+  "private": true,
+  "packageManager": "pnpm@11.5.2",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean",
+    "dev:web": "turbo run dev --filter=@zury/web",
+    "dev:api": "turbo run dev --filter=@zury/api"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  }
+}
