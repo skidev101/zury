@@ -21,13 +21,17 @@ export function createApp(): Express {
   app.use(cors({ origin: env.WEB_URL, credentials: true }));
 
   // Better Auth reads the raw request body, so its handler precedes JSON parsing.
-  const authHandler = (request: express.Request, response: express.Response) => {
-    // Express 5 strips the mount path before delegated handlers, but Better Auth
-    // routes against its full base path.
+  const authHandler = toNodeHandler(auth);
+  app.use((request, response, next) => {
+    if (!request.originalUrl.startsWith("/api/auth/")) {
+      next();
+      return;
+    }
+
+    // Better Auth must receive its complete configured base path.
     request.url = request.originalUrl;
-    return toNodeHandler(auth)(request, response);
-  };
-  app.use("/api/auth", authHandler);
+    return authHandler(request, response);
+  });
 
   app.use(express.json({ limit: "1mb" }));
   app.use(sessionMiddleware);
