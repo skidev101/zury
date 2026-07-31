@@ -27,8 +27,12 @@ export function Sidebar({
           Z
         </span>
         <div className="hidden min-w-0 xl:block">
-          <span className="block font-heading text-base font-semibold tracking-[-0.03em] text-text-primary">Zury</span>
-          <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-text-tertiary">Academic OS</span>
+          <span className="block font-heading text-base font-semibold tracking-[-0.03em] text-text-primary">
+            Zury
+          </span>
+          <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-text-tertiary">
+            Academic OS
+          </span>
         </div>
       </div>
 
@@ -36,7 +40,9 @@ export function Sidebar({
       <nav className="mt-8 space-y-1.5" aria-label="Primary navigation">
         {navigation.map((item) => {
           const href = routes[item.label];
-          const isActive = href === pathname || (href === "/dashboard" && pathname === "/dashboard");
+          const isActive =
+            href === pathname ||
+            (href === "/dashboard" && pathname === "/dashboard");
           const classes = `relative flex min-h-11 items-center gap-3.5 rounded-xl px-3.5 text-xs font-medium transition-all duration-200 ${
             isActive
               ? "border border-emerald/30 bg-emerald-soft text-emerald font-semibold"
@@ -49,11 +55,20 @@ export function Sidebar({
             </>
           );
           return href ? (
-            <Link key={item.label} href={href} aria-current={isActive ? "page" : undefined} className={classes}>
+            <Link
+              key={item.label}
+              href={href}
+              aria-current={isActive ? "page" : undefined}
+              className={classes}
+            >
               {content}
             </Link>
           ) : (
-            <span key={item.label} aria-disabled="true" className={`${classes} cursor-default`}>
+            <span
+              key={item.label}
+              aria-disabled="true"
+              className={`${classes} cursor-default`}
+            >
               {content}
             </span>
           );
@@ -64,11 +79,19 @@ export function Sidebar({
       <div className="mt-auto space-y-3 pt-4 border-t border-white/[0.08]">
         <div className="flex items-center gap-3 px-2 py-1">
           <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface text-xs font-semibold text-text-secondary ring-1 ring-white/10 shadow-inner">
-            {user.image ? <img src={user.image} alt="" className="size-full object-cover" /> : user.name.slice(0, 1).toUpperCase()}
+            {user.image ? (
+              <img src={user.image} alt="" className="size-full object-cover" />
+            ) : (
+              user.name.slice(0, 1).toUpperCase()
+            )}
           </span>
           <span className="hidden min-w-0 xl:block">
-            <span className="block truncate text-xs font-semibold text-text-primary">{user.name}</span>
-            <span className="block max-w-[130px] truncate text-[11px] text-text-tertiary">{user.email}</span>
+            <span className="block truncate text-xs font-semibold text-text-primary">
+              {user.name}
+            </span>
+            <span className="block max-w-[130px] truncate text-[11px] text-text-tertiary">
+              {user.email}
+            </span>
           </span>
         </div>
         <div className="hidden xl:block">
