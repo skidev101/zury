@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+	"entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1785438841598,
+      "tag": "0000_sweet_james_howlett",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1785446096219,
+      "tag": "0001_mighty_spencer_smythe",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1785446406310,
+      "tag": "0002_loud_alex_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1785503341763,
+      "tag": "0003_slippery_yellow_claw",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1785510994317,
+      "tag": "0004_perfect_stardust",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1785519726926,
+      "tag": "0005_narrow_ben_grimm",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785520000000,
+      "tag": "0006_github_repository_description",
+      "breakpoints": true
+    }
+  ]
+}

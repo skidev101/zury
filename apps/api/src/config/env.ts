@@ -74,7 +74,10 @@ export function getGitHubEnv(input: Env = env) {
     GITHUB_CLIENT_ID: z.string().min(1, "GITHUB_CLIENT_ID is required"),
     GITHUB_CLIENT_SECRET: z.string().min(1, "GITHUB_CLIENT_SECRET is required"),
     GITHUB_REDIRECT_URI: z.string().url(),
-    CALENDAR_TOKEN_ENCRYPTION_KEY: z.string().min(1),
+    CALENDAR_TOKEN_ENCRYPTION_KEY: z.string().refine(
+      (value) => Buffer.from(value, "base64").length === 32,
+      "CALENDAR_TOKEN_ENCRYPTION_KEY must be a base64-encoded 32-byte key",
+    ),
   }).safeParse(input);
   return result.success ? result.data : null;
 }

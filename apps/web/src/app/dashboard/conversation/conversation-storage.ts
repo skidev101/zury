@@ -1,7 +1,8 @@
 const DATABASE_NAME = "zury-offline";
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 const THREADS = "conversation-threads";
 const PENDING = "conversation-pending";
+const DRAFTS = "conversation-drafts";
 
 export interface CachedThread {
   key: string;
@@ -19,6 +20,14 @@ export interface PendingMessage {
   content: string;
   timezone: string;
   createdAt: string;
+  status: "pending" | "sending" | "failed";
+  error?: string;
+}
+
+interface ConversationDraft {
+  userId: string;
+  content: string;
+  updatedAt: string;
 }
 
 export async function saveCachedThread(thread: Omit<CachedThread, "key">): Promise<void> {
@@ -45,7 +54,7 @@ export async function savePendingMessage(message: PendingMessage): Promise<void>
 export async function listPendingMessages(userId: string): Promise<PendingMessage[]> {
   const database = await openDatabase();
   const values = await request<PendingMessage[]>(database, PENDING, "readonly", (store) => store.getAll());
-  return values.filter((message) => message.userId === userId).sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  return values.filter((message) => message.userId === userId).map((message) => ({ ...message, status: message.status ?? "pending" })).sort((left, right) => left.createdAt.localeCompare(right.createdAt));
 }
 
 export async function deletePendingMessage(id: string): Promise<void> {
@@ -53,9 +62,35 @@ export async function deletePendingMessage(id: string): Promise<void> {
   await request(database, PENDING, "readwrite", (store) => store.delete(id));
 }
 
+export async function updatePendingMessage(id: string, update: Pick<PendingMessage, "status" | "error">): Promise<void> {
+  const database = await openDatabase();
+  await request(database, PENDING, "readwrite", (store) => {
+    const result = store.get(id);
+    result.onsuccess = () => {
+      if (result.result) store.put({ ...result.result, ...update });
+    };
+    return result;
+  });
+}
+
+export async function getConversationDraft(userId: string): Promise<string> {
+  const database = await openDatabase();
+  const draft = await request<ConversationDraft | undefined>(database, DRAFTS, "readonly", (store) => store.get(userId));
+  return draft?.userId === userId ? draft.content : "";
+}
+
+export async function saveConversationDraft(userId: string, content: string): Promise<void> {
+  const database = await openDatabase();
+  if (!content) {
+    await request(database, DRAFTS, "readwrite", (store) => store.delete(userId));
+    return;
+  }
+  await request(database, DRAFTS, "readwrite", (store) => store.put({ userId, content, updatedAt: new Date().toISOString() }));
+}
+
 export async function clearConversationData(userId: string): Promise<void> {
   const database = await openDatabase();
-  await Promise.all([clearOwned(database, THREADS, userId), clearOwned(database, PENDING, userId)]);
+  await Promise.all([clearOwned(database, THREADS, userId), clearOwned(database, PENDING, userId), clearOwned(database, DRAFTS, userId)]);
   database.close();
 }
 
@@ -66,6 +101,7 @@ function openDatabase(): Promise<IDBDatabase> {
       if (!open.result.objectStoreNames.contains("today-snapshots")) open.result.createObjectStore("today-snapshots", { keyPath: "key" });
       if (!open.result.objectStoreNames.contains(THREADS)) open.result.createObjectStore(THREADS, { keyPath: "key" });
       if (!open.result.objectStoreNames.contains(PENDING)) open.result.createObjectStore(PENDING, { keyPath: "id" });
+      if (!open.result.objectStoreNames.contains(DRAFTS)) open.result.createObjectStore(DRAFTS, { keyPath: "userId" });
     };
     open.onsuccess = () => resolve(open.result);
     open.onerror = () => reject(open.error);

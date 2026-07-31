@@ -7,10 +7,11 @@ import { Icon } from "../components/icon";
 import { useDashboardUser } from "../dashboard-session";
 import { calendarUpdatedEvent } from "@/lib/api";
 import { AssistantMessage } from "./assistant-message";
-import { deleteCachedThread, deletePendingMessage, listCachedThreads, listPendingMessages, saveCachedThread, savePendingMessage, type PendingMessage } from "./conversation-storage";
+import { deleteCachedThread, deletePendingMessage, getConversationDraft, listCachedThreads, listPendingMessages, saveCachedThread, saveConversationDraft, savePendingMessage, updatePendingMessage, type PendingMessage } from "./conversation-storage";
 
 type Action = { type: "create_event" | "update_event" | "delete_event"; title: string; startAt: string; endAt: string; location: string | null; conflicts: Array<{ title: string; startAt: string; endAt: string; allDay: boolean }>; availability: "current" | "saved" | "unavailable" | "disconnected" | "reconnect_required"; originalTitle?: string };
-type Message = { role: "user" | "zury"; text: string; actionId?: string; action?: Action; actionResolved?: boolean; delivery?: "pending" };
+type LocalMessageStatus = "sent" | "pending" | "sending" | "failed";
+type Message = { role: "user" | "zury"; text: string; clientMessageId?: string; actionId?: string; action?: Action; actionResolved?: boolean; delivery?: LocalMessageStatus };
 type Thread = { id: string; title: string; updatedAt: string };
 type ThreadResponse = { id: string; title?: string; messages?: Array<{ role: "user" | "assistant"; content: string }>; pendingAction?: { id: string; type: Action["type"]; payload: string; expiresAt: string } | null };
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -26,6 +27,7 @@ export function ConversationScreen() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [offline, setOffline] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const retryingRef = useRef(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -36,12 +38,18 @@ export function ConversationScreen() {
 
   useEffect(() => {
     void loadThreads();
+    void getConversationDraft(user.id).then(setInput).catch(() => undefined);
     const update = () => setOffline(!navigator.onLine);
     update();
     window.addEventListener("online", retryPending);
     window.addEventListener("offline", update);
     return () => { window.removeEventListener("online", retryPending); window.removeEventListener("offline", update); };
   }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void saveConversationDraft(user.id, input).catch(() => undefined), 200);
+    return () => window.clearTimeout(timeout);
+  }, [input, user.id]);
 
   useEffect(() => {
     scrollToBottom(false);
@@ -66,7 +74,8 @@ export function ConversationScreen() {
       setOffline(true);
       const cached = await listCachedThreads(user.id).catch(() => []);
       setThreads(cached.map(({ id, title, updatedAt }) => ({ id, title, updatedAt })));
-      if (cached[0]) { setConversationId(cached[0].id); setMessages(toMessages(cached[0].messages)); }
+      if (cached[0]) { setConversationId(cached[0].id); setMessages(await withPending(toMessages(cached[0].messages), cached[0].id)); }
+      else setMessages(await withPending([], null));
     }
     setPendingCount((await listPendingMessages(user.id).catch(() => [])).length);
   }
@@ -77,7 +86,7 @@ export function ConversationScreen() {
       if (!response.ok) return;
       const result = (await response.json()) as ThreadResponse;
       setConversationId(result.id);
-      setMessages(toMessages(result.messages ?? [], result.pendingAction));
+      setMessages(await withPending(toMessages(result.messages ?? [], result.pendingAction), result.id));
       await saveCachedThread({ userId: user.id, id: result.id, title: result.title ?? "Conversation", updatedAt: new Date().toISOString(), messages: result.messages ?? [] }).catch(() => undefined);
     } catch (e) {
       console.error(e);
@@ -124,65 +133,59 @@ export function ConversationScreen() {
     if (!message || busy) return;
 
     setInput("");
+    void saveConversationDraft(user.id, "").catch(() => undefined);
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
 
     const clientMessageId = crypto.randomUUID();
-    const isOnline = navigator.onLine;
-    setMessages((current) => [...current, { role: "user", text: message, ...(isOnline ? {} : { delivery: "pending" as const }) }]);
-    if (!isOnline) {
-      await queueMessage({ id: clientMessageId, userId: user.id, conversationId, content: message, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", createdAt: new Date().toISOString() });
-      setBusy(false);
-      return;
-    }
-    setBusy(true);
-
-    try {
-      const response = await fetch(`${apiUrl}/api/conversation`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          message,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-          ...(conversationId ? { conversationId } : {}),
-          clientMessageId,
-        }),
-      });
-      const result = (await response.json()) as { message?: string; actionId?: string; resolvedActionId?: string; action?: Action; conversationId?: string; error?: { message?: string } };
-      if (result.conversationId) setConversationId(result.conversationId);
-      const reply: Message = { role: "zury", text: result.message ?? result.error?.message ?? "I couldn't respond just now." };
-      if (result.actionId) reply.actionId = result.actionId;
-      if (result.action) reply.action = result.action;
-      setMessages((current) => [...current.map((item) => item.actionId === result.resolvedActionId ? { ...item, actionResolved: true } : item), reply]);
-      void refreshThreadList();
-    } catch {
-      setMessages((current) => [...current, { role: "zury", text: "Zury couldn't reach the service just now. Try again when you're connected." }]);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function queueMessage(message: PendingMessage) {
-    await savePendingMessage(message);
+    const pending: PendingMessage = { id: clientMessageId, userId: user.id, conversationId, content: message, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", createdAt: new Date().toISOString(), status: navigator.onLine ? "sending" : "pending" };
+    await savePendingMessage(pending);
     setPendingCount((count) => count + 1);
+    setMessages((current) => [...current, { role: "user", text: message, clientMessageId, delivery: pending.status }]);
+    if (!navigator.onLine) return;
+    setBusy(true);
+    await deliverMessage(pending);
+    setBusy(false);
   }
 
   async function retryPending() {
-    if (!navigator.onLine) return;
+    if (!navigator.onLine || retryingRef.current) return;
+    retryingRef.current = true;
     setOffline(false);
     const pending = await listPendingMessages(user.id).catch(() => []);
     for (const message of pending) {
-      try {
-        const response = await fetch(`${apiUrl}/api/conversation`, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: message.content, timezone: message.timezone, ...(message.conversationId ? { conversationId: message.conversationId } : {}), clientMessageId: message.id }) });
-        if (!response.ok) continue;
-        await deletePendingMessage(message.id);
-      } catch { break; }
+      const delivered = await deliverMessage(message);
+      if (!delivered) break;
     }
     const remaining = await listPendingMessages(user.id).catch(() => []);
     setPendingCount(remaining.length);
-    if (remaining.length === 0) await loadThreads();
+    retryingRef.current = false;
+  }
+
+  async function deliverMessage(message: PendingMessage): Promise<boolean> {
+    if (!navigator.onLine) return false;
+    await updatePendingMessage(message.id, { status: "sending", error: undefined }).catch(() => undefined);
+    setMessages((current) => current.map((item) => item.clientMessageId === message.id ? { ...item, delivery: "sending" } : item));
+    try {
+      const response = await fetch(`${apiUrl}/api/conversation`, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: message.content, timezone: message.timezone, ...(message.conversationId ? { conversationId: message.conversationId } : {}), clientMessageId: message.id }) });
+      const result = await response.json().catch(() => null) as { message?: string; actionId?: string; resolvedActionId?: string; action?: Action; conversationId?: string; error?: { message?: string } } | null;
+      if (!response.ok || !result || result.error) throw new Error(result?.error?.message ?? "Couldn't send");
+      await deletePendingMessage(message.id);
+      setPendingCount((count) => Math.max(0, count - 1));
+      if (result.conversationId) setConversationId(result.conversationId);
+      const reply: Message = { role: "zury", text: result.message ?? "Zury responded." };
+      if (result.actionId) reply.actionId = result.actionId;
+      if (result.action) reply.action = result.action;
+      setMessages((current) => [...current.map((item) => item.clientMessageId === message.id ? { ...item, delivery: "sent" as const } : item.actionId === result.resolvedActionId ? { ...item, actionResolved: true } : item), reply]);
+      await refreshThreadList();
+      if (result.conversationId) await refreshCachedThread(result.conversationId);
+      return true;
+    } catch (error) {
+      await updatePendingMessage(message.id, { status: "failed", error: error instanceof Error ? error.message : "Couldn't send" }).catch(() => undefined);
+      setMessages((current) => current.map((item) => item.clientMessageId === message.id ? { ...item, delivery: "failed" } : item));
+      return false;
+    }
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -201,6 +204,27 @@ export function ConversationScreen() {
     } catch (e) {
       console.error(e);
     }
+  }
+
+  async function refreshCachedThread(id: string) {
+    const response = await fetch(`${apiUrl}/api/conversations/${id}`, { credentials: "include", cache: "no-store" });
+    if (!response.ok) return;
+    const thread = await response.json() as ThreadResponse;
+    await saveCachedThread({ userId: user.id, id: thread.id, title: thread.title ?? "Conversation", updatedAt: new Date().toISOString(), messages: thread.messages ?? [] });
+  }
+
+  async function withPending(base: Message[], id: string | null): Promise<Message[]> {
+    const pending = await listPendingMessages(user.id).catch(() => []);
+    return base.concat(pending.filter((item) => item.conversationId === id || (!item.conversationId && !id)).map((item) => ({ role: "user" as const, text: item.content, clientMessageId: item.id, delivery: item.status })));
+  }
+
+  async function retryMessage(clientMessageId: string) {
+    if (!navigator.onLine) return;
+    const pending = (await listPendingMessages(user.id)).find((item) => item.id === clientMessageId);
+    if (!pending) return;
+    setBusy(true);
+    await deliverMessage(pending);
+    setBusy(false);
   }
 
   async function confirm(actionId: string) {
@@ -294,7 +318,7 @@ export function ConversationScreen() {
               ) : (
                 <div className="mx-auto max-w-3xl space-y-6">
                   {messages.map((message, index) => (
-                    <MessageBubble key={`${message.role}-${index}`} message={message} busy={busy} onConfirm={confirm} onCancel={cancel} />
+                    <MessageBubble key={message.clientMessageId ?? `${message.role}-${index}`} message={message} busy={busy} offline={offline} onRetry={() => message.clientMessageId && void retryMessage(message.clientMessageId)} onConfirm={confirm} onCancel={cancel} />
                   ))}
                   {offline && <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-xs leading-5 text-amber-200">You&apos;re offline. New messages will be sent when you&apos;re connected.</div>}
                   {busy && (
@@ -436,7 +460,7 @@ function EmptyConversation({ setInput }: { setInput: (value: string) => void }) 
   );
 }
 
-  function MessageBubble({ message, busy, onConfirm, onCancel }: { message: Message; busy: boolean; onConfirm: (id: string) => Promise<void>; onCancel: (id: string) => Promise<void> }) {
+  function MessageBubble({ message, busy, offline, onRetry, onConfirm, onCancel }: { message: Message; busy: boolean; offline: boolean; onRetry: () => void; onConfirm: (id: string) => Promise<void>; onCancel: (id: string) => Promise<void> }) {
   const isUser = message.role === "user";
 
   return (
@@ -448,7 +472,7 @@ function EmptyConversation({ setInput }: { setInput: (value: string) => void }) 
             : "border border-white/[0.08] bg-[#121614] text-text-primary rounded-bl-xs"
         }`}
       >
-        {isUser ? <><p className="whitespace-pre-wrap">{message.text}</p>{message.delivery === "pending" && <p className="mt-1 text-[10px] font-normal text-[#080A09]/65">Waiting for connection</p>}</> : <div className="min-w-0 overflow-x-auto"><AssistantMessage>{message.text}</AssistantMessage></div>}
+        {isUser ? <><p className="whitespace-pre-wrap">{message.text}</p>{message.delivery && message.delivery !== "sent" && <div className="mt-1 flex items-center justify-between gap-3 text-[10px] font-normal text-[#080A09]/65"><span>{message.delivery === "pending" ? "Waiting for connection" : message.delivery === "sending" ? "Sending" : "Couldn’t send"}</span>{message.delivery === "failed" && !offline && <button type="button" className="font-semibold underline" onClick={onRetry}>Try again</button>}</div>}</> : <div className="min-w-0 overflow-x-auto"><AssistantMessage>{message.text}</AssistantMessage></div>}
         {message.actionId && message.action && !message.actionResolved && (
           <div className="mt-4 rounded-xl border border-emerald/20 bg-emerald-soft/40 p-3 text-left">
             <p className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${message.action.type === "delete_event" ? "text-red-300" : "text-emerald"}`}>{actionLabel(message.action.type)}</p>
@@ -459,7 +483,8 @@ function EmptyConversation({ setInput }: { setInput: (value: string) => void }) 
             {message.action.conflicts[0] && <p className="mt-3 rounded-lg bg-amber-400/10 px-3 py-2 text-xs text-amber-200">This overlaps {message.action.conflicts[0].title}. You can still continue.</p>}
             {message.action.availability !== "current" && message.action.conflicts.length === 0 && <p className="mt-3 text-xs text-text-tertiary">Availability could not be fully verified.</p>}
             <div className="mt-3 flex flex-wrap gap-2">
-              <button className={`inline-flex min-h-9 items-center gap-2 rounded-xl px-3.5 text-xs font-semibold text-[#080A09] disabled:opacity-50 ${message.action.type === "delete_event" ? "bg-red-300" : "bg-emerald"}`} onClick={() => void onConfirm(message.actionId!)} disabled={busy}>{message.action.type === "delete_event" ? "Delete event" : "Confirm"}</button>
+               <button className={`inline-flex min-h-9 items-center gap-2 rounded-xl px-3.5 text-xs font-semibold text-[#080A09] disabled:opacity-50 ${message.action.type === "delete_event" ? "bg-red-300" : "bg-emerald"}`} onClick={() => void onConfirm(message.actionId!)} disabled={busy || offline}>{message.action.type === "delete_event" ? "Delete event" : "Confirm"}</button>
+               {offline && <p className="basis-full text-xs text-amber-200">You’ll need to be online before Zury can update Calendar.</p>}
               <button className="inline-flex min-h-9 items-center rounded-xl border border-white/[0.1] px-3.5 text-xs text-text-secondary disabled:opacity-50" onClick={() => void onCancel(message.actionId!)} disabled={busy}>Cancel</button>
             </div>
           </div>

@@ -3,8 +3,14 @@ import { z } from "zod";
 import { requireAuth } from "../auth/middleware.js";
 import { env } from "../config/env.js";
 import type { GitHubService } from "../github/service.js";
+import { GitHubProviderError } from "../github/provider.js";
 
 const selectionSchema = z.object({ repositoryIds: z.array(z.string().min(1)).max(20) });
+const activitySchema = z.object({
+  rangeStart: z.string().datetime({ offset: true }),
+  rangeEnd: z.string().datetime({ offset: true }),
+  timezone: z.string().min(1).max(100).refine((value) => { try { new Intl.DateTimeFormat("en", { timeZone: value }).format(); return true; } catch { return false; } }),
+});
 
 export function createGitHubRouter(service: GitHubService | null): ExpressRouter {
   const router = Router();
@@ -14,6 +20,10 @@ export function createGitHubRouter(service: GitHubService | null): ExpressRouter
   router.delete("/api/github/connection", requireAuth, async (request, response, next) => { try { if (service) await service.disconnect(request.auth!.user.id); response.status(204).send(); } catch (error) { next(error); } });
   router.get("/api/github/repositories", requireAuth, async (request, response, next) => { try { response.json(service ? await service.repositories(request.auth!.user.id) : { state: "disconnected", repositories: [] }); } catch (error) { next(error); } });
   router.put("/api/github/repositories/selection", requireAuth, async (request, response, next) => { const parsed = selectionSchema.safeParse(request.body); if (!parsed.success) { response.status(400).json({ error: { code: "INVALID_REPOSITORY_SELECTION", message: "Choose valid projects." } }); return; } try { if (!service) { response.status(503).json({ error: { code: "GITHUB_UNAVAILABLE", message: "GitHub is not available just now." } }); return; } response.json(await service.select(request.auth!.user.id, parsed.data.repositoryIds)); } catch (error) { next(error); } });
-  router.get("/api/github/activity", requireAuth, async (request, response, next) => { try { response.json(service ? await service.activity(request.auth!.user.id) : { state: "disconnected", activity: { commits: [], pullRequests: [] } }); } catch (error) { next(error); } });
+  router.get("/api/github/activity", requireAuth, async (request, response, next) => {
+    const parsed = activitySchema.safeParse(request.query);
+    if (!parsed.success) { response.status(400).json({ error: { code: "INVALID_ACTIVITY_RANGE", message: "Choose a valid date range." } }); return; }
+    try { response.json(service ? await service.activity(request.auth!.user.id, parsed.data.rangeStart, parsed.data.rangeEnd) : { state: "disconnected", fetchedAt: null, activity: { commits: [], pullRequests: [] } }); } catch (error) { next(error); }
+  });
   return router;
 }

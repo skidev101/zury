@@ -95,6 +95,7 @@ Student benefit:
 Permission boundary:
 
 - Read repository metadata
+- Read commit activity
 - Read pull requests
 
 ### Read-only implementation
@@ -116,9 +117,9 @@ GITHUB_CLIENT_SECRET=
 GITHUB_REDIRECT_URI=http://localhost:3001/api/github/callback
 ```
 
-Create a GitHub OAuth App with the callback URL above. Zury requests `read:user`;
-private repository access depends on the repositories the OAuth App and account
-can expose. No GitHub write operation is implemented.
+Create a GitHub OAuth App with the callback URL above. Zury requests `read:user
+repo` so the user can choose repositories visible to their account and read
+commit and pull-request activity. No GitHub write operation is implemented.
 
 Implementation flow:
 

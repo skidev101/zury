@@ -23,7 +23,7 @@ export function createTodayRouter(service: CalendarService, github: GitHubServic
         range.rangeEnd,
         query.data.timezone,
       );
-      const githubContext = github ? await github.activity(request.auth!.user.id) : { state: "disconnected" as const, activity: { commits: [], pullRequests: [] } };
+      const githubContext = github ? await github.activity(request.auth!.user.id, range.rangeStart, range.rangeEnd) : { state: "disconnected" as const, fetchedAt: null, activity: { commits: [], pullRequests: [] } };
       response.json({ ...calendar, github: githubContext });
     } catch (error) {
       next(error);

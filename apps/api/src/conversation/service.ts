@@ -13,7 +13,7 @@ import type { GitHubActivity } from "../github/provider.js";
 import { zonedDateTimeToUtc } from "../calendar/date-range.js";
 
 interface GitHubContextReader {
-  activity(userId: string): Promise<{ state: "disconnected" | "current" | "saved" | "unavailable"; activity: GitHubActivity }>;
+  activity(userId: string, rangeStart?: string, rangeEnd?: string): Promise<{ state: "disconnected" | "current" | "saved" | "unavailable"; activity: GitHubActivity }>;
 }
 
 export const intentSchema = z.discriminatedUnion("type", [
@@ -222,7 +222,16 @@ export class ConversationService {
     if (clientMessageId) await this.repository.completeRequest(userId, clientMessageId, response);
     return response;
     } catch (error) {
-      if (clientMessageId) await this.repository.failRequest(userId, clientMessageId);
+      if (clientMessageId) {
+        const response: ConversationResponse = {
+          type: "error",
+          code: "MESSAGE_FAILED",
+          message: "Zury couldn't respond just now. Please try a new message.",
+          conversationId: id,
+        };
+        await this.repository.completeRequest(userId, clientMessageId, response);
+        return response;
+      }
       throw error;
     }
   }

@@ -13,7 +13,8 @@ type Connection = {
   canCreateEvents?: boolean;
 };
 type GitHubConnection = { status: "disconnected" | "connected" | "reconnect_required"; connectedAt: string | null };
-type GitHubRepository = { externalId: string; name: string; fullName: string; selected: boolean };
+type GitHubRepository = { id?: string; externalId?: string; name: string; fullName: string; description?: string | null; selected: boolean };
+type GitHubActivity = { state: "disconnected" | "current" | "saved" | "unavailable"; fetchedAt: string | null; activity: { commits: Array<{ id: string; message: string; repository: string; committedAt: string }>; pullRequests: Array<{ id: string; title: string; repository: string; url: string; updatedAt: string; state: string }> } };
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -25,6 +26,7 @@ export function ConnectionsScreen() {
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [activity, setActivity] = useState<GitHubActivity | null>(null);
 
   async function loadConnection() {
     try {
@@ -51,6 +53,12 @@ export function ConnectionsScreen() {
 
   useEffect(() => { void loadConnection(); void loadGitHub(); }, []);
 
+  useEffect(() => {
+    if (github?.status !== "connected") return;
+    const end = new Date(); const start = new Date(end.getTime() - 7 * 86_400_000); const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    void fetch(`${apiUrl}/api/github/activity?rangeStart=${encodeURIComponent(start.toISOString())}&rangeEnd=${encodeURIComponent(end.toISOString())}&timezone=${encodeURIComponent(timezone)}`, { credentials: "include", cache: "no-store" }).then((response) => response.ok ? response.json() : null).then((result) => { if (result) setActivity(result as GitHubActivity); }).catch(() => undefined);
+  }, [github?.status]);
+
   async function connectGitHub() {
     setBusy(true);
     try { const response = await fetch(`${apiUrl}/api/github/connect`, { method: "POST", credentials: "include" }); const result = await response.json() as { authorizationUrl?: string }; if (!result.authorizationUrl) throw new Error(); window.location.assign(result.authorizationUrl); }
@@ -65,9 +73,10 @@ export function ConnectionsScreen() {
   }
 
   async function toggleRepository(repository: GitHubRepository) {
-    const next = repositories.map((item) => item.externalId === repository.externalId ? { ...item, selected: !item.selected } : item);
+    const repositoryId = repository.externalId ?? repository.id ?? "";
+    const next = repositories.map((item) => (item.externalId ?? item.id) === repositoryId ? { ...item, selected: !item.selected } : item);
     setRepositories(next);
-    const response = await fetch(`${apiUrl}/api/github/repositories/selection`, { method: "PUT", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ repositoryIds: next.filter((item) => item.selected).map((item) => item.externalId) }) });
+    const response = await fetch(`${apiUrl}/api/github/repositories/selection`, { method: "PUT", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ repositoryIds: next.filter((item) => item.selected).map((item) => item.externalId ?? item.id).filter(Boolean) }) });
     if (!response.ok) { setRepositories(repositories); setMessage("That project selection couldn't be saved."); }
   }
 
@@ -119,7 +128,7 @@ export function ConnectionsScreen() {
                 <div className="flex shrink-0 gap-2 sm:flex-col sm:items-stretch">{status === "connected" && connection?.canCreateEvents ? <button className="min-h-10 rounded-xl border border-border px-4 text-[13px] font-medium text-text-secondary transition hover:bg-surface-hover hover:text-text-primary" onClick={() => setConfirming(true)}>Disconnect</button> : <button className="min-h-10 rounded-xl bg-text-primary px-4 text-[13px] font-semibold text-background transition hover:opacity-90 disabled:opacity-50" onClick={() => void connect()} disabled={busy}>{busy ? "Opening..." : status === "connected" ? "Enable event creation" : status === "reconnect_required" ? "Reconnect" : "Connect calendar"}</button>}</div>
               </div>
             </DashboardCard>
-            <DashboardCard><div className="flex flex-col gap-5"><div className="flex items-start gap-4"><span className="grid size-11 shrink-0 place-items-center rounded-xl border border-border bg-surface-hover text-text-tertiary"><Icon name="branch" size={20} /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h3 className="font-heading text-lg font-semibold tracking-[-.025em]">GitHub</h3><Status status={github?.status} /></div><p className="mt-2 text-[13px] leading-5 text-text-secondary">Bring recent coursework and group-project changes into Zury. Access is read-only.</p></div>{github?.status === "connected" ? <button className="min-h-10 rounded-xl border border-border px-4 text-[13px] text-text-secondary" onClick={() => void disconnectGitHub()} disabled={busy}>Disconnect</button> : <button className="min-h-10 rounded-xl bg-text-primary px-4 text-[13px] font-semibold text-background disabled:opacity-50" onClick={() => void connectGitHub()} disabled={busy}>Connect GitHub</button>}</div>{github?.status === "connected" && <div className="border-t border-border pt-4"><p className="text-xs font-medium text-text-secondary">Projects Zury should follow</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{repositories.map((repository) => <label key={repository.externalId} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-border px-3 text-xs text-text-secondary hover:bg-surface-hover"><input type="checkbox" checked={repository.selected} onChange={() => void toggleRepository(repository)} className="accent-emerald" /><span className="truncate">{repository.fullName}</span></label>)}</div>{!repositories.length && <p className="mt-3 text-xs text-text-tertiary">No accessible projects were found.</p>}</div>}</div></DashboardCard>
+             <DashboardCard><div className="flex flex-col gap-5"><div className="flex items-start gap-4"><span className="grid size-11 shrink-0 place-items-center rounded-xl border border-border bg-surface-hover text-text-tertiary"><Icon name="branch" size={20} /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h3 className="font-heading text-lg font-semibold tracking-[-.025em]">GitHub</h3><Status status={github?.status} /></div><p className="mt-2 text-[13px] leading-5 text-text-secondary">Bring recent coursework and group-project changes into Zury. Access is read-only.</p></div>{github?.status === "connected" ? <button className="min-h-10 rounded-xl border border-border px-4 text-[13px] text-text-secondary" onClick={() => void disconnectGitHub()} disabled={busy}>Disconnect</button> : <button className="min-h-10 rounded-xl bg-text-primary px-4 text-[13px] font-semibold text-background disabled:opacity-50" onClick={() => void connectGitHub()} disabled={busy}>Connect GitHub</button>}</div>{github?.status === "connected" && <div className="border-t border-border pt-4"><p className="text-xs font-medium text-text-secondary">Projects Zury should follow</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{repositories.map((repository) => <label key={repository.id ?? repository.externalId} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-border px-3 text-xs text-text-secondary hover:bg-surface-hover"><input type="checkbox" checked={repository.selected} onChange={() => void toggleRepository(repository)} className="accent-emerald" /><span className="min-w-0 truncate">{repository.fullName}</span></label>)}</div>{!repositories.length && <p className="mt-3 text-xs text-text-tertiary">No accessible projects were found.</p>}<div className="mt-5 border-t border-border pt-4"><div className="flex items-center justify-between"><p className="text-xs font-medium text-text-secondary">Recent project context</p>{activity && <span className="text-[10px] text-text-tertiary">{activity.state === "saved" ? "Saved" : activity.state === "current" ? "Current" : "Unavailable"}</span>}</div>{activity?.activity.commits[0] || activity?.activity.pullRequests[0] ? <div className="mt-3 space-y-2">{activity.activity.commits.slice(0, 3).map((commit) => <p key={commit.id} className="truncate text-xs text-text-secondary">{commit.repository}: {commit.message}</p>)}{activity.activity.pullRequests.slice(0, 2).map((pull) => <p key={pull.id} className="truncate text-xs text-text-secondary">{pull.repository}: {pull.title}</p>)}</div> : <p className="mt-3 text-xs text-text-tertiary">{repositories.some((repository) => repository.selected) ? "No activity in this range." : "Choose a project to see relevant activity here."}</p>}</div></div>}</div></DashboardCard>
           </div>
         </main>
       </div>

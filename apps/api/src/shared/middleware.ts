@@ -2,6 +2,7 @@ import type { ErrorRequestHandler, RequestHandler } from "express";
 import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { CalendarError } from "../calendar/errors.js";
+import { GitHubProviderError } from "../github/provider.js";
 
 export const requestLogger: RequestHandler = (request, response, next) => {
   const startedAt = performance.now();
@@ -28,6 +29,11 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     response.status(error.code === "INVALID_DATE_RANGE" ? 400 : 503).json({
       error: { code: error.code, message: error.message },
     });
+    return;
+  }
+  if (error instanceof GitHubProviderError) {
+    const status = error.code === "RECONNECT_REQUIRED" ? 409 : error.code === "AUTHORIZATION_FAILED" ? 400 : 503;
+    response.status(status).json({ error: { code: `GITHUB_${error.code}`, message: error.message } });
     return;
   }
   logger.error("Unhandled request error", error);

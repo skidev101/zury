@@ -24,8 +24,8 @@ export interface TodayData {
   github: {
     state: "disconnected" | "current" | "saved" | "unavailable";
     activity: {
-      commits: Array<{ id: string; message: string; author: string | null; committedAt: string }>;
-      pullRequests: Array<{ id: string; title: string; repository: string; url: string; updatedAt: string }>;
+       commits: Array<{ id: string; message: string; author: string | null; committedAt: string; repository: string }>;
+       pullRequests: Array<{ id: string; title: string; repository: string; url: string; updatedAt: string; state: "open" | "closed" | "merged" }>;
     };
   };
 }

@@ -16,7 +16,7 @@ out/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
-db/
+/db/
 
 # Turbo
 .turbo/

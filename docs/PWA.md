@@ -30,6 +30,14 @@ Zury features a Progressive Web Application (PWA) setup designed for fast web na
 1. **Pre-cached Assets**: Static shell page `/offline` and application icon `/icon.svg`.
 2. **Navigation Fallback**: If a navigation request fails while offline, the service worker intercepts network failure and serves `/offline`.
 3. **Static Resource Caching**: Successful `GET` responses are cached dynamically to `zury-shell-v1-static`.
+4. **Conversation drafts and pending messages**: Authenticated user-scoped
+   IndexedDB records preserve drafts and outgoing Conversation messages. A
+   pending message is sent in creation order after connectivity returns using
+   its original client message ID. Calendar confirmations remain online-only.
+
+The dashboard exposes `Online` or `Offline` with a pending-message count. User
+messages show `Waiting for connection`, `Sending`, `Sent`, or `Couldn't send`.
+Logging out clears only the signed-in user's local records.
 
 ---
 

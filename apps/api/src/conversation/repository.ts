@@ -527,49 +527,23 @@ export class ConversationRepository implements ConversationStore {
     conversationId: string,
     clientMessageId: string,
   ) {
-    const existing = this.db
-      .select()
-      .from(conversationRequest)
-      .where(
-        and(
-          eq(conversationRequest.userId, userId),
-          eq(conversationRequest.clientMessageId, clientMessageId),
-        ),
-      )
-      .get();
-    if (existing?.status === "completed" && existing.response)
-      return {
-        state: "completed" as const,
-        response: JSON.parse(existing.response) as unknown,
-      };
-    if (existing?.status === "processing")
-      return { state: "processing" as const };
-    const now = new Date();
-    this.db
-      .insert(conversationRequest)
-      .values({
-        id: randomUUID(),
-        userId,
-        conversationId,
-        clientMessageId,
-        status: "processing",
-        createdAt: now,
-        updatedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: [
-          conversationRequest.userId,
-          conversationRequest.clientMessageId,
-        ],
-        set: {
-          conversationId,
-          status: "processing",
-          response: null,
-          updatedAt: now,
-        },
-      })
-      .run();
-    return { state: "new" as const };
+    return this.db.transaction((tx) => {
+      const existing = tx
+        .select()
+        .from(conversationRequest)
+        .where(and(eq(conversationRequest.userId, userId), eq(conversationRequest.clientMessageId, clientMessageId)))
+        .get();
+      if (existing) {
+        if (existing.conversationId !== conversationId) return { state: "processing" as const };
+        if (existing.status === "completed" && existing.response) {
+          return { state: "completed" as const, response: JSON.parse(existing.response) as unknown };
+        }
+        return { state: "processing" as const };
+      }
+      const now = new Date();
+      tx.insert(conversationRequest).values({ id: randomUUID(), userId, conversationId, clientMessageId, status: "processing", createdAt: now, updatedAt: now }).run();
+      return { state: "new" as const };
+    });
   }
 
   async completeRequest(
