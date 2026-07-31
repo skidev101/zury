@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-type IconName = "home" | "calendar" | "study" | "chat" | "connections" | "settings" | "search" | "plus" | "bell" | "arrow" | "note" | "spark" | "branch" | "more" | "chevron";
+type IconName = "home" | "calendar" | "study" | "chat" | "connections" | "settings" | "search" | "plus" | "bell" | "arrow" | "note" | "spark" | "branch" | "more" | "chevron" | "trash";
 
 export function Icon({ name, size = 17, ...props }: { name: IconName; size?: number } & SVGProps<SVGSVGElement>) {
   const common = { width: size, height: size, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, ...props };
@@ -20,6 +20,7 @@ export function Icon({ name, size = 17, ...props }: { name: IconName; size?: num
     branch: <><circle cx="5" cy="4" r="1.5" /><circle cx="5" cy="14" r="1.5" /><circle cx="13" cy="9" r="1.5" /><path d="M6.5 4h2a3 3 0 0 1 3 3v.5M6.5 14h2a3 3 0 0 0 3-3v-.5" /></>,
     more: <><circle cx="4" cy="9" r=".7" fill="currentColor" stroke="none" /><circle cx="9" cy="9" r=".7" fill="currentColor" stroke="none" /><circle cx="14" cy="9" r=".7" fill="currentColor" stroke="none" /></>,
     chevron: <path d="m6 7 3 3 3-3" />,
+    trash: <><path d="M4 5h10M7 5V3h4v2M5 7l.6 8h6.8l.6-8M7.5 9.5v3M10.5 9.5v3" /></>,
   };
   return <svg viewBox="0 0 18 18" aria-hidden="true" {...common}>{paths[name]}</svg>;
 }

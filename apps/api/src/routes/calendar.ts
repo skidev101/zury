@@ -3,9 +3,28 @@ import type { CalendarService } from "../calendar/service.js";
 import { requireAuth } from "../auth/middleware.js";
 import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
+import { calendarRangeQuerySchema } from "../calendar/date-range.js";
 
 export function createCalendarRouter(service: CalendarService): ExpressRouter {
   const router = Router();
+
+  router.get("/api/calendar/events", requireAuth, async (request, response, next) => {
+    const query = calendarRangeQuerySchema.safeParse(request.query);
+    if (!query.success) {
+      response.status(400).json({ error: { code: "INVALID_DATE_RANGE", message: "Choose a valid date range and timezone." } });
+      return;
+    }
+    try {
+      response.json(await service.getRange(
+        request.auth!.user.id,
+        query.data.start,
+        query.data.end,
+        query.data.timezone,
+      ));
+    } catch (error) {
+      next(error);
+    }
+  });
 
   router.get("/api/calendar/connection", requireAuth, async (request, response, next) => {
     try {

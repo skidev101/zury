@@ -16,6 +16,7 @@ class FakeProvider implements CalendarProvider {
     if (this.mode === "reconnect") throw new CalendarError("CALENDAR_RECONNECT_REQUIRED", "reconnect");
     return { events: [event] };
   }
+  async createEvent() { return { event }; }
   async health() { return { available: true }; }
 }
 
@@ -60,5 +61,18 @@ describe("CalendarService", () => {
     const provider = new FakeProvider(); provider.mode = "reconnect";
     const result = await new CalendarService(provider, store).getToday("user-1", "start", "end", "UTC");
     assert.equal(result.calendar.state, "reconnect_required");
+  });
+
+  it("returns normalized conflicts using the live calendar result", async () => {
+    const store = new FakeStore();
+    store.connection = { status: "connected", credentials, connectedAt: new Date() };
+    const result = await new CalendarService(new FakeProvider(), store).checkConflicts(
+      "user-1",
+      "2026-07-30T08:30:00.000Z",
+      "2026-07-30T09:30:00.000Z",
+      "UTC",
+    );
+    assert.equal(result.conflicts.length, 1);
+    assert.equal(result.conflicts[0]?.event.id, event.id);
   });
 });

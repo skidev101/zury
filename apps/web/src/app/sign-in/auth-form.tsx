@@ -93,12 +93,12 @@ export function AuthForm() {
   return (
     <div className="w-full max-w-[410px]">
       <div className="mb-8">
-        <div className="mb-12 flex items-center gap-2.5 text-lg font-semibold lg:hidden">
+        <div className="mb-8 flex items-center gap-2.5 text-lg font-semibold lg:hidden">
           <span className="grid size-8 place-items-center rounded-[10px] border border-border-strong bg-gradient-to-br from-surface-hover to-surface text-sm text-accent" aria-hidden="true">Z</span>
           <span>Zury</span>
         </div>
-        <h2 className="font-serif text-[clamp(2.25rem,4vw,2.75rem)] font-medium leading-none tracking-[-0.045em]">{mode === "sign-in" ? "Welcome back" : "Create your space"}</h2>
-        <p className="mt-3 text-text-secondary">
+        <h2 className="font-serif text-[clamp(2rem,7vw,2.75rem)] font-medium leading-tight tracking-[-0.045em]">{mode === "sign-in" ? "Welcome back" : "Create your space"}</h2>
+        <p className="mt-3 text-sm text-text-secondary sm:text-base">
           {mode === "sign-in"
             ? "Continue to your day and study plans."
             : "Start with a calm view of what comes next."}
@@ -106,13 +106,13 @@ export function AuthForm() {
       </div>
 
       <button
-        className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-[13px] border border-border-strong bg-surface/70 font-semibold transition hover:-translate-y-px hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-55"
+        className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-[13px] border border-border-strong bg-surface/70 px-4 font-semibold transition hover:-translate-y-px hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-55"
         type="button"
         onClick={continueWithGoogle}
         disabled={disabled}
       >
         <GoogleIcon />
-        <span>{providerPending ? "Opening Google..." : "Continue with Google"}</span>
+        <span className="text-sm sm:text-base">{providerPending ? "Opening Google..." : "Continue with Google"}</span>
       </button>
 
       <div className="my-7 flex items-center gap-3.5 text-[11px] uppercase tracking-[0.04em] text-text-tertiary before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border"><span>or continue with email</span></div>
@@ -162,7 +162,7 @@ export function AuthForm() {
 
         {error ? <p className="rounded-xl border border-danger/25 bg-danger/10 px-3.5 py-3 text-[13px] text-danger" role="alert">{error}</p> : null}
 
-        <button className="mt-1 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-[13px] border border-accent bg-accent font-semibold text-accent-foreground shadow-[0_10px_32px_var(--accent-soft)] transition hover:-translate-y-px hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-55" type="submit" disabled={disabled}>
+        <button className="mt-1 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-[13px] border border-accent bg-accent px-4 font-semibold text-accent-foreground shadow-[0_10px_32px_var(--accent-soft)] transition hover:-translate-y-px hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-55 text-sm sm:text-base" type="submit" disabled={disabled}>
           {isPending
             ? "Please wait..."
             : mode === "sign-in" ? "Continue with email" : "Create account"}
@@ -172,7 +172,7 @@ export function AuthForm() {
       <p className="mt-6 text-center text-[13px] text-text-secondary">
         {mode === "sign-in" ? "New to Zury?" : "Already have an account?"}{" "}
         <button
-          className="cursor-pointer border-0 bg-transparent font-semibold text-text-primary transition hover:text-accent disabled:cursor-not-allowed disabled:opacity-55"
+          className="inline-flex min-h-11 items-center cursor-pointer border-0 bg-transparent font-semibold text-text-primary transition hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent rounded-md px-1 disabled:cursor-not-allowed disabled:opacity-55"
           type="button"
           onClick={() => changeMode(mode === "sign-in" ? "sign-up" : "sign-in")}
           disabled={disabled}
@@ -181,7 +181,7 @@ export function AuthForm() {
         </button>
       </p>
 
-      <p className="mx-auto mt-8 max-w-[340px] text-center text-[11px] leading-5 text-text-tertiary">
+      <p className="mx-auto mt-6 max-w-[340px] text-center text-[11px] leading-5 text-text-tertiary">
         By continuing, you agree to use Zury responsibly and acknowledge its
         privacy practices.
       </p>

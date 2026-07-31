@@ -2,8 +2,9 @@ import { Router, type Router as ExpressRouter } from "express";
 import { requireAuth } from "../auth/middleware.js";
 import { getDayRange, todayQuerySchema } from "../calendar/date-range.js";
 import type { CalendarService } from "../calendar/service.js";
+import type { GitHubService } from "../github/service.js";
 
-export function createTodayRouter(service: CalendarService): ExpressRouter {
+export function createTodayRouter(service: CalendarService, github: GitHubService | null): ExpressRouter {
   const router = Router();
 
   router.get("/api/today", requireAuth, async (request, response, next) => {
@@ -16,12 +17,14 @@ export function createTodayRouter(service: CalendarService): ExpressRouter {
     }
     try {
       const range = getDayRange(query.data.date, query.data.timezone);
-      response.json(await service.getToday(
+      const calendar = await service.getToday(
         request.auth!.user.id,
         range.rangeStart,
         range.rangeEnd,
         query.data.timezone,
-      ));
+      );
+      const githubContext = github ? await github.activity(request.auth!.user.id) : { state: "disconnected" as const, activity: { commits: [], pullRequests: [] } };
+      response.json({ ...calendar, github: githubContext });
     } catch (error) {
       next(error);
     }

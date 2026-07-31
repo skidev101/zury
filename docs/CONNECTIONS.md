@@ -28,7 +28,9 @@ Student benefit:
 Permission boundary:
 
 - Read calendar events
-- Phase 2 requests only `calendar.readonly`; event changes are not implemented.
+- Initial connections used `calendar.readonly`. Conversation-assisted event
+  creation now requests `calendar.events`; existing read-only connections must
+  reconnect before Zury can add an event.
 
 Implementation flow:
 
@@ -63,6 +65,22 @@ Generate the encryption key with `openssl rand -base64 32`. In Google Cloud,
 enable Google Calendar API, configure the OAuth consent screen and add the exact
 redirect URI above to the Calendar OAuth client.
 
+### Future write boundary
+
+Calendar writes will be introduced as explicit backend commands, separate from
+the read service used by Today and Planner. A future Conversation flow may
+resolve a student's natural-language request into a typed event command, apply
+the student's IANA timezone, request confirmation when needed and then invoke a
+write-capable provider through the backend. Write scopes, command validation and
+safe completion reporting must be added together; read-only credentials must
+never be treated as write-capable, and the browser must never call Google
+Calendar directly.
+
+Conversation threads and pending Calendar actions are persisted in SQLite. A
+pending action is claimed atomically before a write, so retries and double-clicks
+cannot create the same event twice. Structured AI intent output is validated by
+the backend before any Calendar read or write is performed.
+
 ## GitHub
 
 GitHub is optional project context for students whose coursework uses it. It is
@@ -78,6 +96,29 @@ Permission boundary:
 
 - Read repository metadata
 - Read pull requests
+
+### Read-only implementation
+
+- GitHub connection remains separate from Better Auth and Google sign-in.
+- The backend creates and consumes a short-lived, single-use OAuth state.
+- Access tokens are encrypted with the same authenticated encryption used for
+  connected-app credentials and are never sent to the browser.
+- Students choose which course or group-project repositories Zury may use.
+- Repository, commit and open pull-request context refreshes only when requested.
+  If GitHub cannot be reached, Zury returns the latest saved snapshot with a
+  clear saved status.
+
+Required backend environment:
+
+```text
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GITHUB_REDIRECT_URI=http://localhost:3001/api/github/callback
+```
+
+Create a GitHub OAuth App with the callback URL above. Zury requests `read:user`;
+private repository access depends on the repositories the OAuth App and account
+can expose. No GitHub write operation is implemented.
 
 Implementation flow:
 

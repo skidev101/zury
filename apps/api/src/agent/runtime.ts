@@ -3,12 +3,15 @@ import {
   type AIProvider,
   type AIRequest,
   type AIResponse,
+  type AIJsonRequest,
+  type AIJsonResponse,
   type ProviderError,
 } from "../ai/provider.js";
 
 export type RuntimeResult =
   | { ok: true; value: AIResponse }
   | { ok: false; error: RuntimeError };
+export type StructuredRuntimeResult = { ok: true; value: AIJsonResponse } | { ok: false; error: RuntimeError };
 
 export interface RuntimeError {
   code: ProviderError["code"] | "RUNTIME_ERROR";
@@ -25,6 +28,11 @@ export class AgentRuntime {
     } catch (error) {
       return { ok: false, error: toRuntimeError(error) };
     }
+  }
+
+  async runStructured(request: AIJsonRequest): Promise<StructuredRuntimeResult> {
+    try { return { ok: true, value: await this.provider.generateJson(request) }; }
+    catch (error) { return { ok: false, error: toRuntimeError(error) }; }
   }
 }
 

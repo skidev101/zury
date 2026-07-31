@@ -1,4 +1,4 @@
-export const CALENDAR_READ_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+export const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
 export interface CalendarCredentials {
   accessToken: string;
@@ -28,5 +28,42 @@ export interface CalendarProvider {
     rangeEnd: string;
     timezone: string;
   }): Promise<{ events: CalendarEvent[]; credentials?: CalendarCredentials }>;
+  createEvent(input: {
+    credentials: CalendarCredentials;
+    event: CreateCalendarEventInput;
+  }): Promise<{ event: CalendarEvent; credentials?: CalendarCredentials }>;
+  updateEvent?(input: {
+    credentials: CalendarCredentials;
+    event: UpdateCalendarEventInput;
+  }): Promise<{ event: CalendarEvent; credentials?: CalendarCredentials }>;
+  deleteEvent?(input: {
+    credentials: CalendarCredentials;
+    event: DeleteCalendarEventInput;
+  }): Promise<{ credentials?: CalendarCredentials }>;
   health(): Promise<{ available: boolean }>;
+}
+
+export interface CreateCalendarEventInput {
+  title: string;
+  description: string | null;
+  location: string | null;
+  startAt: string;
+  endAt: string;
+  allDay: boolean;
+  timezone: string;
+}
+
+export interface UpdateCalendarEventInput {
+  externalEventId: string;
+  title?: string;
+  description?: string | null;
+  location?: string | null;
+  startAt?: string;
+  endAt?: string;
+  allDay?: boolean;
+  timezone: string;
+}
+
+export interface DeleteCalendarEventInput {
+  externalEventId: string;
 }

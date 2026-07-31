@@ -5,7 +5,11 @@ import { auth } from "./auth/auth.js";
 import { sessionMiddleware } from "./auth/middleware.js";
 import { env } from "./config/env.js";
 import { routes } from "./routes/index.js";
-import { errorHandler, notFoundHandler, requestLogger } from "./shared/middleware.js";
+import {
+  errorHandler,
+  notFoundHandler,
+  requestLogger,
+} from "./shared/middleware.js";
 import "./types.js";
 
 export function createApp(): Express {

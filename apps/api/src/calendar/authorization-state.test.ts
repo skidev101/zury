@@ -11,6 +11,7 @@ describe("calendar authorization state", () => {
       async getAuthorizationUrl() { return "https://example.test"; },
       async completeAuthorization() { exchanged = true; return { accessToken: "x", refreshToken: null, accessTokenExpiresAt: null, scope: "read" }; },
       async listEvents() { return { events: [] }; },
+      async createEvent() { throw new Error("not used"); },
       async health() { return { available: true }; },
     };
     const store = {

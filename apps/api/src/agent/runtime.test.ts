@@ -6,6 +6,7 @@ import { AgentRuntime } from "./runtime.js";
 test("runtime delegates generation to its provider", async () => {
   const provider: AIProvider = {
     generate: async (request) => ({ text: request.prompt, model: "test-model" }),
+    generateJson: async () => ({ value: {}, model: "test-model" }),
     health: async () => ({ available: true }),
   };
   const runtime = new AgentRuntime(provider);
@@ -25,6 +26,7 @@ test("runtime converts provider failures into structured errors", async () => {
         retryable: true,
       });
     },
+    generateJson: async () => ({ value: {}, model: "test-model" }),
     health: async () => ({ available: true }),
   };
   const runtime = new AgentRuntime(provider);

@@ -12,9 +12,12 @@ const envSchema = z.object({
   GOOGLE_CALENDAR_CLIENT_SECRET: z.string().min(1).optional(),
   GOOGLE_CALENDAR_REDIRECT_URI: z.string().url().optional(),
   CALENDAR_TOKEN_ENCRYPTION_KEY: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().min(1).optional(),
+  GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
+  GITHUB_REDIRECT_URI: z.string().url().optional(),
   AI_PROVIDER: z.enum(["google", "ollama"]).default("google"),
   GOOGLE_AI_API_KEY: z.string().min(1, "GOOGLE_AI_API_KEY is required").optional(),
-  GOOGLE_AI_MODEL: z.string().min(1).default("gemini-2.5-flash"),
+  GOOGLE_AI_MODEL: z.string().min(1).default("gemini-3.5-flash-lite"),
   WEB_URL: z.string().url().default("http://localhost:3000"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 }).superRefine((values, context) => {
@@ -64,4 +67,14 @@ export function getCalendarEnv(input: Env = env) {
       ),
     })
     .parse(input);
+}
+
+export function getGitHubEnv(input: Env = env) {
+  const result = z.object({
+    GITHUB_CLIENT_ID: z.string().min(1, "GITHUB_CLIENT_ID is required"),
+    GITHUB_CLIENT_SECRET: z.string().min(1, "GITHUB_CLIENT_SECRET is required"),
+    GITHUB_REDIRECT_URI: z.string().url(),
+    CALENDAR_TOKEN_ENCRYPTION_KEY: z.string().min(1),
+  }).safeParse(input);
+  return result.success ? result.data : null;
 }

@@ -1,6 +1,6 @@
 import { google, type calendar_v3 } from "googleapis";
 import { CalendarError } from "../errors.js";
-import { CALENDAR_READ_SCOPE, type CalendarCredentials, type CalendarEvent, type CalendarProvider } from "../provider.js";
+import { CALENDAR_SCOPE, type CalendarCredentials, type CalendarEvent, type CalendarProvider, type CreateCalendarEventInput, type DeleteCalendarEventInput, type UpdateCalendarEventInput } from "../provider.js";
 
 export interface GoogleCalendarConfig {
   clientId: string;
@@ -16,7 +16,7 @@ export class GoogleCalendarProvider implements CalendarProvider {
       access_type: "offline",
       include_granted_scopes: true,
       prompt: "consent",
-      scope: [CALENDAR_READ_SCOPE],
+      scope: [CALENDAR_SCOPE],
       state: input.state,
     });
   }
@@ -31,7 +31,7 @@ export class GoogleCalendarProvider implements CalendarProvider {
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token ?? null,
         accessTokenExpiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        scope: tokens.scope ?? CALENDAR_READ_SCOPE,
+        scope: tokens.scope ?? CALENDAR_SCOPE,
       };
     } catch (error) {
       throw mapGoogleError(error, "CALENDAR_AUTHORIZATION_FAILED");
@@ -82,6 +82,69 @@ export class GoogleCalendarProvider implements CalendarProvider {
       };
       if (refreshedCredentials) result.credentials = refreshedCredentials;
       return result;
+    } catch (error) {
+      throw mapGoogleError(error, "CALENDAR_UNAVAILABLE");
+    }
+  }
+
+  async createEvent(input: { credentials: CalendarCredentials; event: CreateCalendarEventInput }): Promise<{ event: CalendarEvent; credentials?: CalendarCredentials }> {
+    if (!input.credentials.scope.includes("calendar.events")) {
+      throw new CalendarError("CALENDAR_RECONNECT_REQUIRED", "Calendar needs to be reconnected before events can be added.");
+    }
+    const client = this.createClient();
+    client.setCredentials({ access_token: input.credentials.accessToken, refresh_token: input.credentials.refreshToken, expiry_date: input.credentials.accessTokenExpiresAt?.getTime() ?? null, scope: input.credentials.scope });
+    try {
+      const requestBody: calendar_v3.Schema$Event = {
+        summary: input.event.title,
+        start: input.event.allDay ? { date: input.event.startAt.slice(0, 10) } : { dateTime: input.event.startAt, timeZone: input.event.timezone },
+        end: input.event.allDay ? { date: input.event.endAt.slice(0, 10) } : { dateTime: input.event.endAt, timeZone: input.event.timezone },
+      };
+      if (input.event.description) requestBody.description = input.event.description;
+      if (input.event.location) requestBody.location = input.event.location;
+      const calendar = google.calendar({ version: "v3", auth: client });
+      const response = await calendar.events.insert({
+        calendarId: "primary",
+        requestBody,
+      });
+      const event = normalizeGoogleEvent(response.data);
+      if (!event) throw new CalendarError("CALENDAR_UNAVAILABLE", "Calendar returned an invalid event.");
+      return { event };
+    } catch (error) {
+      if (error instanceof CalendarError) throw error;
+      throw mapGoogleError(error, "CALENDAR_UNAVAILABLE");
+    }
+  }
+
+  async updateEvent(input: { credentials: CalendarCredentials; event: UpdateCalendarEventInput }): Promise<{ event: CalendarEvent; credentials?: CalendarCredentials }> {
+    if (!input.credentials.scope.includes("calendar.events")) throw new CalendarError("CALENDAR_RECONNECT_REQUIRED", "Calendar needs to be reconnected before events can be changed.");
+    const client = this.createClient();
+    client.setCredentials({ access_token: input.credentials.accessToken, refresh_token: input.credentials.refreshToken, expiry_date: input.credentials.accessTokenExpiresAt?.getTime() ?? null, scope: input.credentials.scope });
+    const requestBody: calendar_v3.Schema$Event = {};
+    if (input.event.title !== undefined) requestBody.summary = input.event.title;
+    if (input.event.description !== undefined) requestBody.description = input.event.description;
+    if (input.event.location !== undefined) requestBody.location = input.event.location;
+    if (input.event.startAt && input.event.endAt) {
+      requestBody.start = input.event.allDay ? { date: input.event.startAt.slice(0, 10) } : { dateTime: input.event.startAt, timeZone: input.event.timezone };
+      requestBody.end = input.event.allDay ? { date: input.event.endAt.slice(0, 10) } : { dateTime: input.event.endAt, timeZone: input.event.timezone };
+    }
+    try {
+      const response = await google.calendar({ version: "v3", auth: client }).events.patch({ calendarId: "primary", eventId: input.event.externalEventId, requestBody });
+      const event = normalizeGoogleEvent(response.data);
+      if (!event) throw new CalendarError("CALENDAR_UNAVAILABLE", "Calendar returned an invalid event.");
+      return { event };
+    } catch (error) {
+      if (error instanceof CalendarError) throw error;
+      throw mapGoogleError(error, "CALENDAR_UNAVAILABLE");
+    }
+  }
+
+  async deleteEvent(input: { credentials: CalendarCredentials; event: DeleteCalendarEventInput }): Promise<{ credentials?: CalendarCredentials }> {
+    if (!input.credentials.scope.includes("calendar.events")) throw new CalendarError("CALENDAR_RECONNECT_REQUIRED", "Calendar needs to be reconnected before events can be removed.");
+    const client = this.createClient();
+    client.setCredentials({ access_token: input.credentials.accessToken, refresh_token: input.credentials.refreshToken, expiry_date: input.credentials.accessTokenExpiresAt?.getTime() ?? null, scope: input.credentials.scope });
+    try {
+      await google.calendar({ version: "v3", auth: client }).events.delete({ calendarId: "primary", eventId: input.event.externalEventId });
+      return {};
     } catch (error) {
       throw mapGoogleError(error, "CALENDAR_UNAVAILABLE");
     }

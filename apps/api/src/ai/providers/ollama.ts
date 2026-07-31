@@ -3,6 +3,8 @@ import {
   type AIProvider,
   type AIRequest,
   type AIResponse,
+  type AIJsonRequest,
+  type AIJsonResponse,
   type ProviderError,
   type ProviderHealth,
 } from "../provider.js";
@@ -16,6 +18,10 @@ export class OllamaProvider implements AIProvider {
   constructor(_options: OllamaProviderOptions) {}
 
   async generate(_request: AIRequest): Promise<AIResponse> {
+    throw new AIProviderError(notImplementedError());
+  }
+
+  async generateJson(_request: AIJsonRequest): Promise<AIJsonResponse> {
     throw new AIProviderError(notImplementedError());
   }
 

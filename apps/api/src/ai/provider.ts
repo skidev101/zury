@@ -1,6 +1,16 @@
 export interface AIProvider {
   generate(request: AIRequest): Promise<AIResponse>;
+  generateJson(request: AIJsonRequest): Promise<AIJsonResponse>;
   health(): Promise<ProviderHealth>;
+}
+
+export interface AIJsonRequest extends AIRequest {
+  jsonSchema: Record<string, unknown>;
+}
+
+export interface AIJsonResponse {
+  value: unknown;
+  model: string;
 }
 
 export interface AIRequest {
