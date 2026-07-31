@@ -12,7 +12,8 @@ const inter = Inter({
   display: "swap",
 });
 
-const fraunces = Fraunces({
+const fraunces = Bricolage_Grotesque({
+  // ps: its intentional
   subsets: ["latin"],
   variable: "--font-fraunces",
   display: "swap",
@@ -53,9 +54,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${fraunces.variable} ${bricolage.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${fraunces.variable} ${bricolage.variable}`}
+    >
       <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           {children}
         </ThemeProvider>
         <ServiceWorkerRegistration />
