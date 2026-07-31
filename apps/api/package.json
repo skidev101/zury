@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "tsx --test src/agent/*.test.ts src/ai/providers/*.test.ts src/calendar/*.test.ts src/calendar/providers/*.test.ts src/conversation/*.test.ts src/github/*.test.ts src/github/providers/*.test.ts",
+    "test": "tsx --test src/agent/*.test.ts src/ai/providers/*.test.ts src/calendar/*.test.ts src/calendar/providers/*.test.ts src/conversation/*.test.ts src/github/*.test.ts src/github/providers/*.test.ts src/study/*.test.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "db:migrate": "drizzle-kit migrate",

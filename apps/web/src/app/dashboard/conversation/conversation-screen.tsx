@@ -3,7 +3,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { MobileNavigation } from "../components/mobile-nav";
 import { Sidebar } from "../components/sidebar";
-import { Icon } from "../components/icon";
+import { Icon } from "../components/dashboard-icon";
 import { useDashboardUser } from "../dashboard-session";
 import { calendarUpdatedEvent } from "@/lib/api";
 import { AssistantMessage } from "./assistant-message";
@@ -167,7 +167,7 @@ export function ConversationScreen() {
 
   async function deliverMessage(message: PendingMessage): Promise<boolean> {
     if (!navigator.onLine) return false;
-    await updatePendingMessage(message.id, { status: "sending", error: undefined }).catch(() => undefined);
+    await updatePendingMessage(message.id, { status: "sending" }).catch(() => undefined);
     setMessages((current) => current.map((item) => item.clientMessageId === message.id ? { ...item, delivery: "sending" } : item));
     try {
       const response = await fetch(`${apiUrl}/api/conversation`, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: message.content, timezone: message.timezone, ...(message.conversationId ? { conversationId: message.conversationId } : {}), clientMessageId: message.id }) });

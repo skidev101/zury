@@ -65,5 +65,4 @@ export interface StudyNote {
 export type SyncStatus = "local" | "synced" | "pending" | "error";
 export type ConnectionStatus = "not_connected" | "connecting" | "connected" | "reconnect_required" | "error";
 
-export * from "./api";
-
+export * from "./api.js";

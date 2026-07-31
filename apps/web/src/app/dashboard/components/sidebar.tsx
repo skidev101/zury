@@ -1,14 +1,16 @@
 import { LogoutButton } from "../logout-button";
 import { navigation } from "../navigation";
-import { Icon } from "./icon";
+import { Icon } from "./dashboard-icon";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const routes: Partial<Record<string, string>> = {
   Home: "/dashboard",
   Planner: "/dashboard/planner",
+  Study: "/dashboard/study",
   Conversation: "/dashboard/conversation",
   Connections: "/dashboard/connections",
+  Settings: "/dashboard/settings",
 };
 
 export function Sidebar({

@@ -11,6 +11,7 @@ import { ConversationService } from "./conversation/service.js";
 import { ConversationRepository } from "./conversation/repository.js";
 import { GitHubApiProvider } from "./github/providers/github.js";
 import { GitHubService } from "./github/service.js";
+import { StudyService } from "./study/service.js";
 
 export const aiProvider = createAIProvider(env);
 export const agentRuntime = new AgentRuntime(aiProvider);
@@ -28,3 +29,4 @@ export const githubService = githubEnv
   : null;
 export const conversationRepository = new ConversationRepository(db);
 export const conversationService = new ConversationService(agentRuntime, calendarService, conversationRepository, githubService ?? undefined);
+export const studyService = new StudyService(agentRuntime);

@@ -24,6 +24,12 @@ export const notFoundHandler: RequestHandler = (_request, response) => {
 };
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
+  if (isPayloadTooLarge(error)) {
+    response.status(413).json({
+      error: { code: "PAYLOAD_TOO_LARGE", message: "Choose a PDF smaller than 15 MB." },
+    });
+    return;
+  }
   if (error instanceof CalendarError) {
     logger.warn("Calendar request failed", { code: error.code });
     response.status(error.code === "INVALID_DATE_RANGE" ? 400 : 503).json({
@@ -47,4 +53,8 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Internal server error";
+}
+
+function isPayloadTooLarge(error: unknown): boolean {
+  return Boolean(error && typeof error === "object" && "type" in error && error.type === "entity.too.large");
 }

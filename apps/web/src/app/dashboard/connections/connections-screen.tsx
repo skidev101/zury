@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DashboardCard } from "../components/dashboard-card";
-import { Icon } from "../components/icon";
+import { Icon } from "../components/dashboard-icon";
 import { MobileNavigation } from "../components/mobile-nav";
 import { Sidebar } from "../components/sidebar";
 import { useDashboardUser } from "../dashboard-session";

@@ -1,12 +1,13 @@
-import { Icon } from "./icon";
+import { Icon } from "./dashboard-icon";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const items = [
   { label: "Home", icon: "home" as const, href: "/dashboard" },
   { label: "Planner", icon: "calendar" as const, href: "/dashboard/planner" },
+  { label: "Study", icon: "study" as const, href: "/dashboard/study" },
   { label: "Ask", icon: "chat" as const, href: "/dashboard/conversation" },
-  { label: "Connections", icon: "connections" as const, href: "/dashboard/connections" },
+  { label: "Settings", icon: "settings" as const, href: "/dashboard/settings" },
 ];
 
 export function MobileNavigation() {

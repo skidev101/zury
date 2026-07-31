@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "./icon";
+import { Icon } from "./dashboard-icon";
 import { DashboardCard, SectionHeader } from "./dashboard-card";
 import { useTodayData } from "./today-data-provider";
 import type { TodayEvent } from "../today-types";

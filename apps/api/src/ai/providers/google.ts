@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import {
   AIProviderError,
+  type AIDocumentRequest,
   type AIProvider,
   type AIRequest,
   type AIResponse,
@@ -75,6 +76,34 @@ export class GoogleAIProvider implements AIProvider {
       if (error instanceof AIProviderError) throw error;
       logger.warn("Google structured generation failed", {
         message: error instanceof Error ? error.message : "Unknown provider error",
+      });
+      throw unavailableError();
+    }
+  }
+
+  async generateWithDocument(request: AIDocumentRequest): Promise<AIResponse> {
+    try {
+      const response = await this.client.models.generateContent({
+        model: this.model,
+        contents: [{
+          role: "user",
+          parts: [
+            { inlineData: request.document },
+            { text: request.prompt },
+          ],
+        }],
+        ...(request.systemInstruction
+          ? { config: { systemInstruction: request.systemInstruction } }
+          : {}),
+      });
+      const text = response.text?.trim();
+      if (!text) throw invalidResponseError();
+      return { text, model: response.modelVersion ?? this.model };
+    } catch (error) {
+      if (error instanceof AIProviderError) throw error;
+      logger.warn("Google document generation failed", {
+        message: error instanceof Error ? error.message : "Unknown provider error",
+        status: getProviderStatus(error),
       });
       throw unavailableError();
     }

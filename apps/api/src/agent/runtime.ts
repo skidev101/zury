@@ -1,5 +1,6 @@
 import {
   AIProviderError,
+  type AIDocumentRequest,
   type AIProvider,
   type AIRequest,
   type AIResponse,
@@ -33,6 +34,14 @@ export class AgentRuntime {
   async runStructured(request: AIJsonRequest): Promise<StructuredRuntimeResult> {
     try { return { ok: true, value: await this.provider.generateJson(request) }; }
     catch (error) { return { ok: false, error: toRuntimeError(error) }; }
+  }
+
+  async runWithDocument(request: AIDocumentRequest): Promise<RuntimeResult> {
+    try {
+      return { ok: true, value: await this.provider.generateWithDocument(request) };
+    } catch (error) {
+      return { ok: false, error: toRuntimeError(error) };
+    }
   }
 }
 

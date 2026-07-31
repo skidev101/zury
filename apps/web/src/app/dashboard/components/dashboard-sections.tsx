@@ -1,7 +1,7 @@
 "use client";
 
 import { DashboardCard, SectionHeader } from "./dashboard-card";
-import { Icon } from "./icon";
+import { Icon } from "./dashboard-icon";
 import { useTodayData } from "./today-data-provider";
 import Link from "next/link";
 import type { TodayData } from "../today-types";

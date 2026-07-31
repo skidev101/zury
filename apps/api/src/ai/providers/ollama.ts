@@ -1,5 +1,6 @@
 import {
   AIProviderError,
+  type AIDocumentRequest,
   type AIProvider,
   type AIRequest,
   type AIResponse,
@@ -22,6 +23,10 @@ export class OllamaProvider implements AIProvider {
   }
 
   async generateJson(_request: AIJsonRequest): Promise<AIJsonResponse> {
+    throw new AIProviderError(notImplementedError());
+  }
+
+  async generateWithDocument(_request: AIDocumentRequest): Promise<AIResponse> {
     throw new AIProviderError(notImplementedError());
   }
 

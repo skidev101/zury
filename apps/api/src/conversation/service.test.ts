@@ -9,7 +9,7 @@ import { ConversationService } from "./service.js";
 const credentials: CalendarCredentials = { accessToken: "access", refreshToken: "refresh", accessTokenExpiresAt: null, scope: "calendar.events" };
 const event: CalendarEvent = { id: "1", calendarId: "primary", title: "Algorithms", description: null, location: null, startAt: "2026-08-03T10:00:00.000Z", endAt: "2026-08-03T11:00:00.000Z", allDay: false, status: "confirmed" };
 
-function createService(events: CalendarEvent[] = [], github?: { activity(userId: string): Promise<{ state: "disconnected" | "current" | "saved" | "unavailable"; activity: { commits: Array<{ id: string; message: string; author: string | null; committedAt: string }>; pullRequests: Array<{ id: string; title: string; repository: string; url: string; updatedAt: string }> } }> }, onPrompt?: (prompt: string) => void) {
+function createService(events: CalendarEvent[] = [], github?: { activity(userId: string): Promise<{ state: "disconnected" | "current" | "saved" | "unavailable"; activity: { commits: Array<{ id: string; message: string; author: string | null; repository: string; committedAt: string }>; pullRequests: Array<{ id: string; title: string; repository: string; url: string; updatedAt: string; state: "open" | "closed" | "merged" }> } }> }, onPrompt?: (prompt: string) => void) {
   let updated = false;
   let deleted = false;
   let pendingAction: import("./repository.js").CalendarActionPayload = { type: "create_event", command: { title: "Algorithms", description: null, location: null, startAt: event.startAt, endAt: event.endAt, allDay: false, timezone: "Africa/Lagos" } };
@@ -47,6 +47,7 @@ function createService(events: CalendarEvent[] = [], github?: { activity(userId:
   };
   const ai: AIProvider = {
     async generate() { return { text: "Grounded reply", model: "fake" }; },
+    async generateWithDocument(request) { return { text: request.prompt, model: "fake" }; },
     async generateJson(request) { onPrompt?.(request.prompt); const input = JSON.parse(request.prompt) as { message: string }; if (input.message.startsWith("What changed")) return { value: { type: "answer", message: "The project changed." }, model: "fake" }; if (input.message.startsWith("Delete")) return { value: { type: "calendar_delete", targetTitle: "Algorithms", rangeStart: "2026-08-03T09:00:00.000Z", rangeEnd: "2026-08-03T12:00:00.000Z" }, model: "fake" }; if (input.message.startsWith("Move")) return { value: { type: "calendar_update", targetTitle: "Algorithms", rangeStart: "2026-08-03T09:00:00.000Z", rangeEnd: "2026-08-03T12:00:00.000Z", title: null, startAt: "2026-08-03T13:00:00.000Z", endAt: "2026-08-03T14:00:00.000Z", location: null, description: null, allDay: null }, model: "fake" }; return { value: input.message.startsWith("What") ? { type: "calendar_query", startAt: "2026-08-02T23:00:00.000Z", endAt: "2026-08-03T23:00:00.000Z", message: "", title: null, location: null, description: null, allDay: false, missingFields: [] } : { type: "calendar_create", message: "", title: "Algorithms", startAt: event.startAt, endAt: event.endAt, location: null, description: null, allDay: false, missingFields: [] }, model: "fake" }; },
     async health() { return { available: true }; },
   };
@@ -56,7 +57,7 @@ function createService(events: CalendarEvent[] = [], github?: { activity(userId:
 describe("ConversationService", () => {
   it("includes normalized GitHub activity as grounded context", async () => {
     let prompt = "";
-    const service = createService([], { activity: async () => ({ state: "current" as const, activity: { commits: [{ id: "commit-1", message: "Fix exam schedule", author: "Student", committedAt: "2026-07-31T12:00:00Z" }], pullRequests: [] } }) }, (value) => { prompt = value; });
+    const service = createService([], { activity: async () => ({ state: "current" as const, activity: { commits: [{ id: "commit-1", message: "Fix exam schedule", author: "Student", repository: "student/coursework", committedAt: "2026-07-31T12:00:00Z" }], pullRequests: [{ id: "pull-1", title: "Improve schedule", repository: "student/coursework", url: "https://github.com/student/coursework/pull/1", updatedAt: "2026-07-31T12:00:00Z", state: "open" }] } }) }, (value) => { prompt = value; });
     const result = await service.respond("user-1", "What changed in my group project?", "UTC");
     assert.equal(result.type, "answer");
     assert.match(prompt, /Fix exam schedule/);

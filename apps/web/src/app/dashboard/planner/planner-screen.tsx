@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getPlannerSnapshot, savePlannerSnapshot } from "../today-storage";
 import type { CalendarState, TodayEvent } from "../today-types";
 import { DashboardCard, SectionHeader } from "../components/dashboard-card";
-import { Icon } from "../components/icon";
+import { Icon } from "../components/dashboard-icon";
 import { MobileNavigation } from "../components/mobile-nav";
 import { Sidebar } from "../components/sidebar";
 import { useDashboardUser } from "../dashboard-session";

@@ -1,4 +1,4 @@
-import type { CalendarEvent } from "./index";
+import type { CalendarEvent } from "./index.js";
 
 export interface TodayOverviewResponse {
   date: string;

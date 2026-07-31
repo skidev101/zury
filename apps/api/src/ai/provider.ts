@@ -1,7 +1,15 @@
 export interface AIProvider {
   generate(request: AIRequest): Promise<AIResponse>;
   generateJson(request: AIJsonRequest): Promise<AIJsonResponse>;
+  generateWithDocument(request: AIDocumentRequest): Promise<AIResponse>;
   health(): Promise<ProviderHealth>;
+}
+
+export interface AIDocumentRequest extends AIRequest {
+  document: {
+    data: string;
+    mimeType: "application/pdf";
+  };
 }
 
 export interface AIJsonRequest extends AIRequest {
