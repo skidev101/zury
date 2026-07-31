@@ -5,7 +5,7 @@ import { Icon } from "./dashboard-icon";
 import { DashboardCard, SectionHeader } from "./dashboard-card";
 import { useTodayData } from "./today-data-provider";
 import type { TodayEvent } from "../today-types";
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const apiUrl = process.env.NODE_ENV === "production" ? "" : process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 export function CalendarPanel() {
   const { data, loading, refreshing, refresh } = useTodayData();

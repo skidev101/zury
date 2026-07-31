@@ -2,7 +2,9 @@ import "server-only";
 
 import { cookies } from "next/headers";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const apiUrl = process.env.NODE_ENV === "production"
+  ? process.env.API_PROXY_URL ?? "https://zury-jm0l.onrender.com"
+  : process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 export interface SessionUser {
   id: string;

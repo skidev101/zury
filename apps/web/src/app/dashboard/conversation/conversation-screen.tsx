@@ -14,7 +14,7 @@ type LocalMessageStatus = "sent" | "pending" | "sending" | "failed";
 type Message = { role: "user" | "zury"; text: string; clientMessageId?: string; actionId?: string; action?: Action; actionResolved?: boolean; delivery?: LocalMessageStatus };
 type Thread = { id: string; title: string; updatedAt: string };
 type ThreadResponse = { id: string; title?: string; messages?: Array<{ role: "user" | "assistant"; content: string }>; pendingAction?: { id: string; type: Action["type"]; payload: string; expiresAt: string } | null };
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const apiUrl = process.env.NODE_ENV === "production" ? "" : process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 export function ConversationScreen() {
   const user = useDashboardUser();

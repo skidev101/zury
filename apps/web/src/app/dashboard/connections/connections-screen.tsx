@@ -16,7 +16,7 @@ type GitHubConnection = { status: "disconnected" | "connected" | "reconnect_requ
 type GitHubRepository = { id?: string; externalId?: string; name: string; fullName: string; description?: string | null; selected: boolean };
 type GitHubActivity = { state: "disconnected" | "current" | "saved" | "unavailable"; fetchedAt: string | null; activity: { commits: Array<{ id: string; message: string; repository: string; committedAt: string }>; pullRequests: Array<{ id: string; title: string; repository: string; url: string; updatedAt: string; state: string }> } };
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const apiUrl = process.env.NODE_ENV === "production" ? "" : process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 export function ConnectionsScreen() {
   const user = useDashboardUser();
