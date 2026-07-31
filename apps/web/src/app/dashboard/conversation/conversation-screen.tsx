@@ -27,6 +27,7 @@ export function ConversationScreen() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [offline, setOffline] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const retryingRef = useRef(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -38,7 +39,7 @@ export function ConversationScreen() {
 
   useEffect(() => {
     void loadThreads();
-    void getConversationDraft(user.id).then(setInput).catch(() => undefined);
+    void getConversationDraft(user.id).then(setInput).catch(() => undefined).finally(() => setDraftLoaded(true));
     const update = () => setOffline(!navigator.onLine);
     update();
     window.addEventListener("online", retryPending);
@@ -47,9 +48,10 @@ export function ConversationScreen() {
   }, []);
 
   useEffect(() => {
+    if (!draftLoaded) return;
     const timeout = window.setTimeout(() => void saveConversationDraft(user.id, input).catch(() => undefined), 200);
     return () => window.clearTimeout(timeout);
-  }, [input, user.id]);
+  }, [draftLoaded, input, user.id]);
 
   useEffect(() => {
     scrollToBottom(false);

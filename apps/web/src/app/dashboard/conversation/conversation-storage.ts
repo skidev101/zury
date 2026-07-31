@@ -64,12 +64,16 @@ export async function deletePendingMessage(id: string): Promise<void> {
 
 export async function updatePendingMessage(id: string, update: Pick<PendingMessage, "status" | "error">): Promise<void> {
   const database = await openDatabase();
-  await request(database, PENDING, "readwrite", (store) => {
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(PENDING, "readwrite");
+    const store = transaction.objectStore(PENDING);
     const result = store.get(id);
     result.onsuccess = () => {
       if (result.result) store.put({ ...result.result, ...update });
     };
-    return result;
+    result.onerror = () => reject(result.error);
+    transaction.oncomplete = () => { database.close(); resolve(); };
+    transaction.onerror = () => reject(transaction.error);
   });
 }
 
